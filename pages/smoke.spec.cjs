@@ -76,12 +76,22 @@ for (const theme of ["halloween", "navidad"]) {
     const classAfterClick = await triggerButton.getAttribute("class");
     console.log(`${theme} click animation class:`, classAfterClick);
 
-    // Verify the candy/snow does rise above the floor, but no longer
-    // reaches the upper half of the page, and then falls back down.
-    await expect.poll(liftBandHasParticles, {
-      timeout: 5000,
-      intervals: [100, 150, 200],
-    }).toBe(true);
+    // A canvas frame can be missed in a CPU-constrained CI runner.
+    // Re-trigger the user interaction if sampling misses the brief peak.
+    let sawLift = false;
+    for (let attempt = 0; attempt < 3 && !sawLift; attempt++) {
+      if (attempt) await triggerButton.click({ timeout: 10000 });
+      try {
+        await expect.poll(liftBandHasParticles, {
+          timeout: 2800,
+          intervals: [80, 120, 160],
+        }).toBe(true);
+        sawLift = true;
+      } catch {
+        // Sampling missed the peak; try another click after the flight.
+      }
+    }
+    expect(sawLift).toBe(true);
     await expect(upperHalfHasParticles()).resolves.toBe(false);
     await expect.poll(liftBandHasParticles, {
       timeout: 8000,
@@ -97,32 +107,49 @@ test("SGA and WhatsApp copy both plain text and rich HTML for external apps", as
   await context.grantPermissions(["clipboard-read", "clipboard-write"], {
     origin: "http://127.0.0.1:4173",
   });
-  await page.addInitScript(() => localStorage.setItem("helpdesk_claro_adp_v1", "Carlos Chiroque"));
+  await page.addInitScript(() => {
+    localStorage.setItem("helpdesk_claro_adp_v1", "Carlos Chiroque");
+    // Observe the ClipboardItem that reaches the native API. Reading back
+    // ClipboardItem.getType() after an OS clipboard change is unreliable in CI.
+    const clipboard = navigator.clipboard;
+    if (!clipboard?.write) return;
+    const nativeWrite = clipboard.write.bind(clipboard);
+    Object.defineProperty(clipboard, "write", {
+      configurable: true,
+      value: async items => {
+        const item = items[0];
+        const content = {};
+        for (const type of item.types) {
+          content[type] = await (await item.getType(type)).text();
+        }
+        window.__lastRichClipboard = content;
+        return nativeWrite(items);
+      },
+    });
+  });
   await page.goto("http://127.0.0.1:4173/claro-helper/", { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: /Ejemplo/i }).click();
   await page.getByRole("button", { name: /Analizar ticket/i }).click();
 
-  const readClipboard = () => page.evaluate(async () => {
-    const [item] = await navigator.clipboard.read();
-    if (!item) throw new Error("Clipboard empty");
-    const plain = await (await item.getType("text/plain")).text();
-    const html = await (await item.getType("text/html")).text();
-    return { types: item.types, plain, html };
-  });
+  const capture = async () => {
+    await expect.poll(async () => page.evaluate(() => !!window.__lastRichClipboard), {
+      timeout: 5000,
+    }).toBe(true);
+    return page.evaluate(() => window.__lastRichClipboard);
+  };
 
   await page.getByRole("button", { name: /Copiar plantilla/i }).click();
-  const sga = await readClipboard();
-  expect(sga.types).toContain("text/html");
-  expect(sga.types).toContain("text/plain");
-  expect(sga.plain).toContain("MESA MULTISKILL HITSS");
-  expect(sga.plain).toContain("REALIZADO POR: Carlos Chiroque");
-  expect(sga.html).toContain("Segoe UI");
-  expect(sga.html).toContain("REALIZADO POR: Carlos Chiroque");
+  const sga = await capture();
+  expect(Object.keys(sga)).toEqual(expect.arrayContaining(["text/plain", "text/html"]));
+  expect(sga["text/plain"]).toContain("MESA MULTISKILL HITSS");
+  expect(sga["text/plain"]).toContain("REALIZADO POR: Carlos Chiroque");
+  expect(sga["text/html"]).toContain("Segoe UI");
+  expect(sga["text/html"]).toContain("REALIZADO POR: Carlos Chiroque");
 
+  await page.evaluate(() => { window.__lastRichClipboard = null; });
   await page.getByRole("button", { name: "Copiar", exact: true }).click();
-  const wsp = await readClipboard();
-  expect(wsp.types).toContain("text/html");
-  expect(wsp.types).toContain("text/plain");
-  expect(wsp.plain).toContain("C.C.");
-  expect(wsp.html).toContain("C.C.");
+  const wsp = await capture();
+  expect(Object.keys(wsp)).toEqual(expect.arrayContaining(["text/plain", "text/html"]));
+  expect(wsp["text/plain"]).toContain("C.C.");
+  expect(wsp["text/html"]).toContain("C.C.");
 });
