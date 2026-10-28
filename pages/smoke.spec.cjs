@@ -39,15 +39,22 @@ for (const theme of ["halloween", "navidad"]) {
     expect(Math.abs(dimensions.height - dimensions.viewportHeight)).toBeLessThan(2);
     expect(Math.abs(dimensions.width - dimensions.viewportWidth)).toBeLessThan(2);
 
-    const upperQuarterHasParticles = async () => canvas.evaluate(el => {
+    // A gentler shake should reach only the lower quarter of the screen.
+    // The animation uses a full-height canvas, but its launch height is 75%
+    // lower than before. Check actual pixels, not just canvas dimensions.
+    const regionHasParticles = async (from, to) => canvas.evaluate((el, bounds) => {
       const ctx = el.getContext("2d", { willReadFrequently: true });
       if (!ctx) return false;
-      const top = ctx.getImageData(0, 0, el.width, Math.max(1, Math.floor(el.height / 4))).data;
-      for (let index = 3; index < top.length; index += 4) {
-        if (top[index] > 0) return true;
+      const y = Math.floor(el.height * bounds.from);
+      const h = Math.max(1, Math.floor(el.height * (bounds.to - bounds.from)));
+      const rgba = ctx.getImageData(0, y, el.width, h).data;
+      for (let i = 3; i < rgba.length; i += 4) {
+        if (rgba[i] > 0) return true;
       }
       return false;
-    });
+    }, { from, to });
+    const liftBandHasParticles = () => regionHasParticles(0.60, 0.82);
+    const upperHalfHasParticles = () => regionHasParticles(0, 0.50);
 
     // Wait until the canvas has actually rendered a frame; clicking before
     // the particle seeding effect runs would otherwise produce no burst.
@@ -62,19 +69,21 @@ for (const theme of ["halloween", "navidad"]) {
       return false;
     });
     await expect.poll(lowerBandHasParticles, { timeout: 5000 }).toBe(true);
-    await expect.poll(upperQuarterHasParticles, { timeout: 3000 }).toBe(false);
+    await expect.poll(liftBandHasParticles, { timeout: 3000 }).toBe(false);
     const trigger = theme === "halloween" ? /Calabaza de Halloween/ : /Bola de cristal de nieve/;
     const triggerButton = page.getByRole("button", { name: trigger });
     await triggerButton.click({ timeout: 10000 });
     const classAfterClick = await triggerButton.getAttribute("class");
     console.log(`${theme} click animation class:`, classAfterClick);
 
-    // Particles must visibly rise into the upper quarter and then fall again.
-    await expect.poll(upperQuarterHasParticles, {
-      timeout: 6000,
+    // Verify the candy/snow does rise above the floor, but no longer
+    // reaches the upper half of the page, and then falls back down.
+    await expect.poll(liftBandHasParticles, {
+      timeout: 5000,
       intervals: [100, 150, 200],
     }).toBe(true);
-    await expect.poll(upperQuarterHasParticles, {
+    await expect(upperHalfHasParticles()).resolves.toBe(false);
+    await expect.poll(liftBandHasParticles, {
       timeout: 8000,
       intervals: [150, 300, 500],
     }).toBe(false);
