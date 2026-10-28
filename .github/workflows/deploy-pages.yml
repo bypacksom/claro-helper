@@ -27,7 +27,7 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
       - name: Unit-test message templates
-        run: bun test src/lib/templates.test.ts
+        run: bun test src/lib/templates.test.ts src/lib/clipboard.test.ts
       - name: Build static SPA for GitHub Pages
         run: bunx vite build --config vite.pages.config.ts
       - name: Install Playwright for interactive browser validation
