@@ -275,6 +275,9 @@ export function SeasonalWidget({ theme }: { theme: string }) {
       />
       <button
         type="button"
+        // A direct click also launches the effect; the burst throttle prevents
+        // duplicate launches after onPointerUp and supports keyboard activation.
+        onClick={burst}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}

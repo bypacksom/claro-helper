@@ -49,10 +49,25 @@ for (const theme of ["halloween", "navidad"]) {
       return false;
     });
 
-    // Before shaking, all candy/snow rests near the bottom.
+    // Wait until the canvas has actually rendered a frame; clicking before
+    // the particle seeding effect runs would otherwise produce no burst.
+    const lowerBandHasParticles = async () => canvas.evaluate(el => {
+      const ctx = el.getContext("2d");
+      if (!ctx) return false;
+      const y = Math.max(0, Math.floor(el.height * 0.94));
+      const rgba = ctx.getImageData(0, y, el.width, Math.max(1, Math.floor(el.height * 0.04))).data;
+      for (let i = 3; i < rgba.length; i += 4) {
+        if (rgba[i] > 0) return true;
+      }
+      return false;
+    });
+    await expect.poll(lowerBandHasParticles, { timeout: 5000 }).toBe(true);
     await expect.poll(upperQuarterHasParticles, { timeout: 3000 }).toBe(false);
     const trigger = theme === "halloween" ? /Calabaza de Halloween/ : /Bola de cristal de nieve/;
-    await page.getByRole("button", { name: trigger }).click({ timeout: 10000 });
+    const triggerButton = page.getByRole("button", { name: trigger });
+    await triggerButton.click({ timeout: 10000 });
+    const classAfterClick = await triggerButton.getAttribute("class");
+    console.log(`${theme} click animation class:`, classAfterClick);
 
     // Particles must visibly rise into the upper quarter and then fall again.
     await expect.poll(upperQuarterHasParticles, {
