@@ -8,6 +8,9 @@ export const getRouter = () => {
   const router = createRouter({
     routeTree,
     context: { queryClient },
+    // In GitHub Pages, both router paths and assets live under /claro-helper/.
+    // In Lovable's usual environment, BASE_URL is '/'.
+    basepath: import.meta.env.BASE_URL.replace(/\/$/, "") || "/",
     scrollRestoration: true,
     defaultPreloadStaleTime: 0,
   });
