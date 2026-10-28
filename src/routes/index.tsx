@@ -74,6 +74,7 @@ import {
 } from "@/lib/templates";
 import { exportCsv, filterHistory, localDateKey, personalMetrics, loadHistory, saveHistory, type HistoryEntry } from "@/lib/history";
 import { SeasonalWidget } from "@/components/seasonal-widget";
+import { copyRichText } from "@/lib/clipboard";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -130,8 +131,8 @@ function emptyTicket(): ParsedTicket {
 
 async function copyText(text: string, label: string) {
   try {
-    await navigator.clipboard.writeText(text);
-    toast.success(`${label} copiado`);
+    await copyRichText(text);
+    toast.success(`${label} copiado (texto y formato compatible)`);
   } catch {
     toast.error("No se pudo copiar");
   }
