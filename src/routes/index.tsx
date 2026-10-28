@@ -201,7 +201,9 @@ export function Dashboard() {
     if (typeof window === "undefined") return;
     const saved = window.localStorage.getItem(ADP_KEY);
     if (saved) {
-      setAdp(saved);
+      const normalized = saved === "LEE MAURICIO" ? "Lee Mauricio" : saved;
+      setAdp(normalized);
+      if (normalized !== saved) window.localStorage.setItem(ADP_KEY, normalized);
     } else {
       setAdpAskOpen(true);
     }
