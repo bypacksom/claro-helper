@@ -24,7 +24,12 @@ const CANDY_COLORS = [
   "#3b82f6",
 ];
 
-const CANVAS_HEIGHT = 96;
+// Full viewport particle field: the floor is the bottom edge of the screen.
+// Gravity and launch velocity use the same units (CSS pixels per animation frame).
+const GRAVITY = 0.32;
+const FLOOR_PADDING = 8;
+const floorY = (height: number, particleSize: number) =>
+  height - FLOOR_PADDING - particleSize * 0.5;
 
 /**
  * Widget estacional con física simple:
@@ -46,8 +51,13 @@ export function SeasonalWidget({ theme }: { theme: string }) {
     lastBurstRef.current = now;
     const parts = particlesRef.current;
     if (!parts.length) return;
+    // A ballistic launch that reaches the top of the visible page (rather
+    // than only 96px above the floor), with slight variation per particle.
+    const launchSpeed = Math.sqrt(
+      2 * GRAVITY * Math.max(360, window.innerHeight - FLOOR_PADDING - 20),
+    );
     for (const p of parts) {
-      p.vy = -(4.5 + Math.random() * 8);
+      p.vy = -launchSpeed * (0.95 + Math.random() * 0.22);
       p.vx = (Math.random() - 0.5) * 9;
       p.vr = (Math.random() - 0.5) * 0.35;
     }
@@ -64,19 +74,23 @@ export function SeasonalWidget({ theme }: { theme: string }) {
     if (!ctx) return;
 
     let disposed = false;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // Limit canvas resolution slightly to keep full-screen effects smooth.
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
 
     const resize = () => {
-      canvas.width = Math.floor(window.innerWidth * dpr);
-      canvas.height = Math.floor(CANVAS_HEIGHT * dpr);
-      canvas.style.width = `${window.innerWidth}px`;
-      canvas.style.height = `${CANVAS_HEIGHT}px`;
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
     resize();
 
     const seed = () => {
       const w = window.innerWidth;
+      const h = window.innerHeight;
       const parts: Particle[] = [];
       if (mode === "halloween") {
         const count = Math.max(24, Math.floor(w / 34));
@@ -84,7 +98,7 @@ export function SeasonalWidget({ theme }: { theme: string }) {
           const size = 11 + Math.random() * 7;
           parts.push({
             x: Math.random() * (w - 20) + 10,
-            y: CANVAS_HEIGHT - size * 0.45,
+            y: floorY(h, size),
             vx: 0,
             vy: 0,
             rot: Math.random() * Math.PI,
@@ -99,7 +113,7 @@ export function SeasonalWidget({ theme }: { theme: string }) {
           const size = 2.5 + Math.random() * 3.5;
           parts.push({
             x: Math.random() * w,
-            y: CANVAS_HEIGHT - Math.random() * 14 - size / 2,
+            y: floorY(h, size) - Math.random() * 14,
             vx: 0,
             vy: 0,
             rot: 0,
@@ -170,24 +184,25 @@ export function SeasonalWidget({ theme }: { theme: string }) {
     const loop = () => {
       if (disposed) return;
       const w = window.innerWidth;
-      ctx.clearRect(0, 0, w, CANVAS_HEIGHT);
-      // Suelo decorativo
+      const h = window.innerHeight;
+      ctx.clearRect(0, 0, w, h);
+      // Only the ground is decorated; the rest of the viewport stays transparent.
       if (mode === "halloween") {
         ctx.fillStyle = "rgba(0,0,0,0.18)";
-        ctx.fillRect(0, CANVAS_HEIGHT - 8, w, 8);
+        ctx.fillRect(0, h - FLOOR_PADDING, w, FLOOR_PADDING);
       } else {
-        const grad = ctx.createLinearGradient(0, CANVAS_HEIGHT - 18, 0, CANVAS_HEIGHT);
+        const grad = ctx.createLinearGradient(0, h - 18, 0, h);
         grad.addColorStop(0, "rgba(255,255,255,0.25)");
         grad.addColorStop(1, "rgba(255,255,255,0.75)");
         ctx.fillStyle = grad;
-        ctx.fillRect(0, CANVAS_HEIGHT - 18, w, 18);
+        ctx.fillRect(0, h - 18, w, 18);
       }
       for (const p of particlesRef.current) {
-        p.vy += 0.32;
+        p.vy += GRAVITY;
         p.x += p.vx;
         p.y += p.vy;
         p.rot += p.vr;
-        const ground = CANVAS_HEIGHT - p.size * 0.45;
+        const ground = floorY(h, p.size);
         if (p.y > ground) {
           p.y = ground;
           if (Math.abs(p.vy) > 0.8) {
@@ -256,7 +271,7 @@ export function SeasonalWidget({ theme }: { theme: string }) {
       <canvas
         ref={canvasRef}
         aria-hidden="true"
-        className="pointer-events-none fixed bottom-0 left-0 z-[9999]"
+        className="pointer-events-none fixed inset-0 z-[9999]"
       />
       <button
         type="button"
