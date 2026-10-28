@@ -92,3 +92,37 @@ for (const theme of ["halloween", "navidad"]) {
     await expect(page.locator("textarea").first()).not.toBeEmpty();
   });
 }
+
+test("SGA and WhatsApp copy both plain text and rich HTML for external apps", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"], {
+    origin: "http://127.0.0.1:4173",
+  });
+  await page.addInitScript(() => localStorage.setItem("helpdesk_claro_adp_v1", "Carlos Chiroque"));
+  await page.goto("http://127.0.0.1:4173/claro-helper/", { waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: /Ejemplo/i }).click();
+  await page.getByRole("button", { name: /Analizar ticket/i }).click();
+
+  const readClipboard = () => page.evaluate(async () => {
+    const [item] = await navigator.clipboard.read();
+    if (!item) throw new Error("Clipboard empty");
+    const plain = await (await item.getType("text/plain")).text();
+    const html = await (await item.getType("text/html")).text();
+    return { types: item.types, plain, html };
+  });
+
+  await page.getByRole("button", { name: /Copiar plantilla/i }).click();
+  const sga = await readClipboard();
+  expect(sga.types).toContain("text/html");
+  expect(sga.types).toContain("text/plain");
+  expect(sga.plain).toContain("MESA MULTISKILL HITSS");
+  expect(sga.plain).toContain("REALIZADO POR: Carlos Chiroque");
+  expect(sga.html).toContain("Segoe UI");
+  expect(sga.html).toContain("REALIZADO POR: Carlos Chiroque");
+
+  await page.getByRole("button", { name: "Copiar", exact: true }).click();
+  const wsp = await readClipboard();
+  expect(wsp.types).toContain("text/html");
+  expect(wsp.types).toContain("text/plain");
+  expect(wsp.plain).toContain("C.C.");
+  expect(wsp.html).toContain("C.C.");
+});
