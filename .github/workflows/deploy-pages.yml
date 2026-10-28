@@ -24,23 +24,21 @@ jobs:
           bun-version: latest
       - name: Install dependencies
         run: bun install --frozen-lockfile
-      - name: Build and prerender for GitHub Pages
-        run: bun run build
-        env:
-          GITHUB_PAGES: "true"
+      - name: Build static SPA for GitHub Pages
+        run: bunx vite build --config vite.pages.config.ts
       - name: Verify the generated static website
         shell: bash
         run: |
-          test -f .output/public/index.html || {
-            echo "::error::Missing .output/public/index.html. Pages needs a prerendered site."
+          test -f dist/index.html || {
+            echo "::error::Missing dist/index.html. Pages needs a static SPA."
             find .output -maxdepth 4 -type f | head -80
             exit 1
           }
-          touch .output/public/.nojekyll
+          touch dist/.nojekyll
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: .output/public
+          path: dist
 
   deploy:
     runs-on: ubuntu-latest
