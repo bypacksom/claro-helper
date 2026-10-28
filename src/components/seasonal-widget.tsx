@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 type SeasonalMode = "halloween" | "navidad";
 
@@ -246,14 +247,16 @@ export function SeasonalWidget({ theme }: { theme: string }) {
     if (d && !d.bursted && d.moved < 40) burst();
   };
 
-  if (!mode) return null;
+  if (!mode || typeof document === "undefined") return null;
 
-  return (
+  // Portaling to <body> keeps particles above cards, sticky headers and any
+  // dashboard stacking context without intercepting interactions.
+  return createPortal(
     <>
       <canvas
         ref={canvasRef}
         aria-hidden="true"
-        className="pointer-events-none fixed bottom-0 left-0 z-20"
+        className="pointer-events-none fixed bottom-0 left-0 z-[9999]"
       />
       <button
         type="button"
@@ -263,7 +266,7 @@ export function SeasonalWidget({ theme }: { theme: string }) {
         onPointerCancel={onPointerUp}
         aria-label={mode === "halloween" ? "Calabaza de Halloween: agítame" : "Bola de cristal de nieve: agítame"}
         title="¡Agítame!"
-        className={`fixed bottom-3 right-5 z-40 select-none touch-none outline-none ${
+        className={`fixed bottom-3 right-5 z-[10000] select-none touch-none outline-none ${
           wiggle
             ? "animate-[seasonal-wiggle_0.45s_ease-in-out]"
             : "transition-transform hover:scale-110"
@@ -289,6 +292,7 @@ export function SeasonalWidget({ theme }: { theme: string }) {
           100% { transform: rotate(0deg) scale(1); }
         }
       `}</style>
-    </>
+    </>,
+    document.body,
   );
 }

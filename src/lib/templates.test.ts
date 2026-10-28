@@ -39,6 +39,15 @@ describe("ADP signatures", () => {
   });
 });
 
+test("Coverage requested WhatsApp message uses the SOT and the selected advisor signature", () => {
+  const tpl = WSP_TEMPLATES.find(t => t.id === "cobertura");
+  if (!tpl) throw new Error("Missing coverage requested template");
+  expect(renderWsp(tpl, { SOT: "88459734", FIRMA: adpSignature("Carlos Chiroque") }))
+    .toBe("@ Estimado. SOT: 88459734 se encuentra en proceso de gestión. C.C.");
+  expect(renderWsp(tpl, { SOT: "99887766", FIRMA: adpSignature("Lee Mauricio") }))
+    .toBe("@ Estimado. SOT: 99887766 se encuentra en proceso de gestión. L.M.");
+});
+
 test("Los 5 rechazos interpolates the SOT and active WhatsApp signature", () => {
   const tpl = WSP_TEMPLATES.find(t => t.id === "los-5-rechazos");
   if (!tpl) throw new Error("Missing coverage rejection template");

@@ -406,7 +406,7 @@ Recordar por favor llenar esta plantilla al momento del envió del correo.
   { id: "confirmo-visita", label: "✅ Confirmó visita (validado)", body: "@ ✅ Estimado SOT: {SOT}, se valida que cliente confirmó Visita - {SUBMOTIVO}. {FIRMA}", needsSubmotivo: true },
   { id: "mantenimientos", label: "⏳ Contrata atendiendo mantenimientos", body: "@⏳Estimado SOT: {SOT}. Cliente en proceso Atención, la contrata se está haciendo cargo de los mantenimientos. {FIRMA}" },
   { id: "postventa", label: "⏳ Contrata atendiendo Postventa", body: "@⏳Estimado SOT: {SOT}. Cliente en proceso Atención, la contrata se está haciendo cargo de las Postventa Junior. {FIRMA}" },
-  { id: "cobertura", label: "⏳ Plantilla de cobertura solicitada", body: "@⏳Estimado SOT: {SOT}, cliente en proceso Atención {FIRMA}." },
+  { id: "cobertura", label: "⏳ Plantilla de cobertura solicitada", body: "@ Estimado. SOT: {SOT} se encuentra en proceso de gestión. {FIRMA}" },
   { id: "escala-sup", label: "⏫ Escalado con supervisor", body: "@ Estimado, la SOT : {SOT} se encuentra en revisión para el requerimiento solicitado . Estamos solicitando priorizar su atención. En breve le compartiremos una actualización del estado. {FIRMA}" },
   { id: "sin-franja", label: "🟡 Sin franja disponible", body: "@ Estimado SOT: {SOT}, se mantiene la fecha, no hay disponibilidad de franja. {FIRMA}" },
   { id: "adelanto-ok", label: "✅ Procede adelanto", body: "@ Estimado SOT: {SOT}. Procede adelanto, nueva fecha - {SUBMOTIVO}. {FIRMA}", needsSubmotivo: true },
