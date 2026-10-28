@@ -6,7 +6,7 @@ describe("ADP signatures", () => {
   for (const [name, signature] of [
     ["Jesus Cerna", "I.C"], ["Jeferson Bautista", "J.B"],
     ["Angelo Palomino", "A.P"], ["Antony Bernaloa", "A.B"], ["Paul Carrasco", "P.C"],
-    ["LEE MAURICIO", "L.M."], ["Carlos Chiroque", "C.C."],
+    ["Lee Mauricio", "L.M."], ["Carlos Chiroque", "C.C."],
   ] as const) {
     test(`${name} uses the requested SGA and WhatsApp signatures`, () => {
       expect(ADP_OPTIONS).toContain(name);
@@ -18,6 +18,9 @@ describe("ADP signatures", () => {
       expect(renderWsp(wsp, { FIRMA: adpSignature(name) }).endsWith(signature)).toBe(true);
     });
   }
+  test("legacy uppercase Lee Mauricio keeps the WhatsApp signature", () => {
+    expect(adpSignature("LEE MAURICIO")).toBe("L.M.");
+  });
   test("Angie Mori is selectable and signs WhatsApp A.M", () => {
     expect(ADP_OPTIONS).toContain("Angie Mori");
     expect(adpSignature("Angie Mori")).toBe("A.M");
