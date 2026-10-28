@@ -6,6 +6,7 @@ describe("ADP signatures", () => {
   for (const [name, signature] of [
     ["Jesus Cerna", "I.C"], ["Jeferson Bautista", "J.B"],
     ["Angelo Palomino", "A.P"], ["Antony Bernaloa", "A.B"], ["Paul Carrasco", "P.C"],
+    ["LEE MAURICIO", "L.M."], ["Carlos Chiroque", "C.C."],
   ] as const) {
     test(`${name} uses the requested SGA and WhatsApp signatures`, () => {
       expect(ADP_OPTIONS).toContain(name);
