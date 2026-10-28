@@ -242,12 +242,19 @@ export function Dashboard() {
   const [filtroAdp, setFiltroAdp] = useState("SELF");
   const [filtroEstado, setFiltroEstado] = useState("ALL");
   useEffect(() => {
+    // Never dispatch one React state update from inside another state's updater:
+    // React 19 StrictMode can retry updaters before the render commits, creating
+    // a render-phase update loop that blocks the entire browser tab.
+    let lastDate = "";
     const update = () => {
       const day = localDateKey();
-      setToday(previous => {
-        if (previous !== day) setFiltroFecha(current => !current || current === previous ? day : current);
-        return day;
-      });
+      if (day === lastDate) return;
+      const previousDate = lastDate;
+      lastDate = day;
+      setToday(day);
+      setFiltroFecha(current =>
+        !current || current === previousDate ? day : current,
+      );
     };
     update();
     const timer = window.setInterval(update, 30_000);
