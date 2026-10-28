@@ -182,7 +182,7 @@ function applyTheme(t: Theme) {
   el.classList.toggle("navidad", t === "navidad");
 }
 
-function Dashboard() {
+export function Dashboard() {
   const [theme, setTheme] = useState<Theme>("light");
   useEffect(() => {
     const saved = window.localStorage.getItem(THEME_KEY) as Theme | null;
