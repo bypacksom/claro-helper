@@ -51,10 +51,11 @@ export function SeasonalWidget({ theme }: { theme: string }) {
     lastBurstRef.current = now;
     const parts = particlesRef.current;
     if (!parts.length) return;
-    // A ballistic launch that reaches the top of the visible page (rather
-    // than only 96px above the floor), with slight variation per particle.
+    // Reduce the vertical launch height by 75% (to 25% of the original).
+    // Ballistic height is proportional to speed squared, so 50% launch
+    // velocity yields a quarter of the previous peak height.
     const launchSpeed = Math.sqrt(
-      2 * GRAVITY * Math.max(360, window.innerHeight - FLOOR_PADDING - 20),
+      2 * GRAVITY * Math.max(360, window.innerHeight - FLOOR_PADDING - 20) * 0.25,
     );
     for (const p of parts) {
       p.vy = -launchSpeed * (0.95 + Math.random() * 0.22);
