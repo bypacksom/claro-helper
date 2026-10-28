@@ -9,5 +9,5 @@ test("dashboard responds to ticket actions without freezing", async ({ page }) =
   await expect(page.getByText("Datos detectados").first()).toBeVisible({ timeout: 10000 }).catch(async () => {
     await expect(page.locator("textarea").first()).not.toBeEmpty();
   });
-  await page.getByRole("button", { name: /Limpiar/i }).first().click({ timeout: 10000 });
+  await page.getByRole("button", { name: "Limpiar", exact: true }).click({ timeout: 10000 });
 });
