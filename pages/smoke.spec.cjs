@@ -28,6 +28,42 @@ for (const theme of ["halloween", "navidad"]) {
     const zIndex = await canvas.evaluate(el => Number(getComputedStyle(el).zIndex));
     expect(zIndex).toBeGreaterThan(1000);
 
+    // Regression: the old canvas was only 96px high, so particles could never
+    // travel from the floor to the top. Verify real pixels across the viewport.
+    const dimensions = await canvas.evaluate(el => ({
+      height: el.getBoundingClientRect().height,
+      viewportHeight: window.innerHeight,
+      width: el.getBoundingClientRect().width,
+      viewportWidth: window.innerWidth,
+    }));
+    expect(Math.abs(dimensions.height - dimensions.viewportHeight)).toBeLessThan(2);
+    expect(Math.abs(dimensions.width - dimensions.viewportWidth)).toBeLessThan(2);
+
+    const upperQuarterHasParticles = async () => canvas.evaluate(el => {
+      const ctx = el.getContext("2d", { willReadFrequently: true });
+      if (!ctx) return false;
+      const top = ctx.getImageData(0, 0, el.width, Math.max(1, Math.floor(el.height / 4))).data;
+      for (let index = 3; index < top.length; index += 4) {
+        if (top[index] > 0) return true;
+      }
+      return false;
+    });
+
+    // Before shaking, all candy/snow rests near the bottom.
+    await expect.poll(upperQuarterHasParticles, { timeout: 3000 }).toBe(false);
+    const trigger = theme === "halloween" ? /Calabaza de Halloween/ : /Bola de cristal de nieve/;
+    await page.getByRole("button", { name: trigger }).click({ timeout: 10000 });
+
+    // Particles must visibly rise into the upper quarter and then fall again.
+    await expect.poll(upperQuarterHasParticles, {
+      timeout: 6000,
+      intervals: [100, 150, 200],
+    }).toBe(true);
+    await expect.poll(upperQuarterHasParticles, {
+      timeout: 8000,
+      intervals: [150, 300, 500],
+    }).toBe(false);
+
     await page.getByRole("button", { name: /Ejemplo/i }).click({ timeout: 10000 });
     await expect(page.locator("textarea").first()).not.toBeEmpty();
   });
